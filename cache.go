@@ -111,6 +111,9 @@ type Adapter interface {
 
 	// Release frees cache for a given key.
 	Release(key uint64)
+
+	// Purges the entire cache.
+	Purge()
 }
 
 // Middleware is the HTTP cache middleware handler.
@@ -121,9 +124,18 @@ func (client *Client) Middleware() echo.MiddlewareFunc {
 				next(c)
 				return nil
 			}
+			headers := []string{}
+			if client.headers != nil {
+				for _, h := range client.headers {
+					if c.Request().Header.Get(h) != "" {
+						headers = append(headers, c.Request().Header.Get(h))
+					}
+				}
+			}
+
 			if client.cacheableMethod(c.Request().Method) {
 				sortURLParams(c.Request().URL)
-				key := generateKey(c.Request().URL.String())
+				key := generateKey(c.Request().URL.String(), headers)
 				if c.Request().Method == http.MethodPost && c.Request().Body != nil {
 					body, err := ioutil.ReadAll(c.Request().Body)
 					defer c.Request().Body.Close()
@@ -132,7 +144,7 @@ func (client *Client) Middleware() echo.MiddlewareFunc {
 						return nil
 					}
 					reader := ioutil.NopCloser(bytes.NewBuffer(body))
-					key = generateKeyWithBody(c.Request().URL.String(), body)
+					key = generateKeyWithBody(c.Request().URL.String(), headers, body)
 					c.Request().Body = reader
 				}
 
@@ -141,7 +153,7 @@ func (client *Client) Middleware() echo.MiddlewareFunc {
 					delete(params, client.refreshKey)
 
 					c.Request().URL.RawQuery = params.Encode()
-					key = generateKey(c.Request().URL.String())
+					key = generateKey(c.Request().URL.String(), headers)
 
 					client.adapter.Release(key)
 				} else {
@@ -157,6 +169,9 @@ func (client *Client) Middleware() echo.MiddlewareFunc {
 							for k, v := range response.Header {
 								c.Response().Header().Set(k, strings.Join(v, ","))
 							}
+							// write a custom header X-Cache: HIT
+							c.Response().Header().Set("X-Cache", "HIT")
+							c.Response().WriteHeader(http.StatusOK)
 							c.Response().WriteHeader(http.StatusOK)
 							c.Response().Write(response.Value)
 							return nil
@@ -254,18 +269,25 @@ func KeyAsString(key uint64) string {
 	return strconv.FormatUint(key, 36)
 }
 
-func generateKey(URL string) uint64 {
+func generateKey(URL string, headers []string) uint64 {
 	hash := fnv.New64a()
-	hash.Write([]byte(URL))
+	bytes := []byte(URL)
+	for _, h := range headers {
+		bytes = append(bytes, []byte(h)...)
+	}
+	hash.Write(bytes)
 
 	return hash.Sum64()
 }
 
-func generateKeyWithBody(URL string, body []byte) uint64 {
+func generateKeyWithBody(URL string, headers []string, body []byte) uint64 {
 	hash := fnv.New64a()
-	body = append([]byte(URL), body...)
+	bytes := []byte(URL)
+	for _, h := range headers {
+		bytes = append(bytes, []byte(h)...)
+	}
+	body = append(bytes, body...)
 	hash.Write(body)
-
 	return hash.Sum64()
 }
 
@@ -329,7 +351,7 @@ func ClientWithRefreshKey(refreshKey string) ClientOption {
 func ClientWithMethods(methods []string) ClientOption {
 	return func(c *Client) error {
 		for _, method := range methods {
-			if method != http.MethodGet && method != http.MethodPost {
+			if method != http.MethodGet && method != http.MethodPost && method != http.MethodOptions {
 				return fmt.Errorf("invalid method %s", method)
 			}
 		}
@@ -338,11 +360,11 @@ func ClientWithMethods(methods []string) ClientOption {
 	}
 }
 
-// ClientWithRestrictedPaths sets the restricted HTTP paths for caching.
+// ClientWithHeaders sets the headers to be considered when caching.
 // Optional setting.
-func ClientWithRestrictedPaths(paths []string) ClientOption {
+func ClientWithHeaders(headers []string) ClientOption {
 	return func(c *Client) error {
-		c.restrictedPaths = paths
+		c.headers = headers
 		return nil
 	}
 }

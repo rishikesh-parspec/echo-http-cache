@@ -7,7 +7,7 @@ import (
 	"runtime/debug"
 	"time"
 
-	"github.com/SporkHubr/echo-http-cache/adapter/memory"
+	"github.com/rishikesh-parspec/echo-http-cache/adapter/memory"
 	"github.com/allegro/bigcache"
 )
 

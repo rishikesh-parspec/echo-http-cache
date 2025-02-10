@@ -65,6 +65,11 @@ func (a *Adapter) Release(key uint64) {
 	a.store.Delete(context.Background(), cache.KeyAsString(key))
 }
 
+// Purge implements the Adapter interface Purge method
+func (a *Adapter) Purge() {
+	panic("not implemented")
+}
+
 // NewAdapter initializes Redis adapter.
 func NewAdapter(opt *RingOptions) cache.Adapter {
 	ropt := redis.RingOptions(*opt)

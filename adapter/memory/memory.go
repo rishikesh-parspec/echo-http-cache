@@ -102,6 +102,14 @@ func (a *Adapter) Release(key uint64) {
 	}
 }
 
+// Purge implements the Adapter interface Purge method
+func (a *Adapter) Purge() {
+	a.mutex.Lock()
+	defer a.mutex.Unlock()
+
+	a.store = make(map[uint64][]byte)
+}
+
 func (a *Adapter) evict() {
 	selectedKey := uint64(0)
 	lastAccess := time.Now()

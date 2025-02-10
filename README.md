@@ -7,6 +7,13 @@ It is simple, super fast, thread safe and gives the possibility to choose the ad
 
 The memory adapter minimizes GC overhead to near zero and supports some options of caching algorithms (LRU, MRU, LFU, MFU). This way, it is able to store plenty of gigabytes of responses, keeping great performance and being free of leaks.
 
+## Updating the package
+1. Make your changes and commit.
+2. `git tag vX.Y.Z`
+3. `git push origin vX.Y.Z`
+4. `GOPROXY=proxy.golang.org go list -m github.com/parikshit-parspec/echo-http-cache@vX.Y.Z`
+5. In the dependent project update version in `go.mod` and run `go mod tidy`.
+   
 ## Getting Started
 
 ### Installation (Go Modules)

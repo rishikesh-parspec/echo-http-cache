@@ -360,6 +360,15 @@ func ClientWithMethods(methods []string) ClientOption {
 	}
 }
 
+// ClientWithRestrictedPaths sets the restricted HTTP paths for caching.
+// Optional setting.
+func ClientWithRestrictedPaths(paths []string) ClientOption {
+	return func(c *Client) error {
+		c.restrictedPaths = paths
+		return nil
+	}
+}
+
 // ClientWithHeaders sets the headers to be considered when caching.
 // Optional setting.
 func ClientWithHeaders(headers []string) ClientOption {

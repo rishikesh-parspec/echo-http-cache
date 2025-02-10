@@ -71,6 +71,7 @@ type Client struct {
 	refreshKey      string
 	methods         []string
 	restrictedPaths []string
+	headers         []string
 }
 
 type bodyDumpResponseWriter struct {

@@ -92,6 +92,15 @@ func BytesToResponse(b []byte) Response {
 	return r
 }
 
+// Bytes converts Response data structure into bytes array.
+func (r Response) Bytes() []byte {
+	var b bytes.Buffer
+	enc := gob.NewEncoder(&b)
+	enc.Encode(&r)
+
+	return b.Bytes()
+}
+
 // Get implements the cache Adapter interface Get method.
 func (a *Adapter) Get(key uint64) ([]byte, bool) {
 	a.mutex.RLock()

@@ -29,11 +29,10 @@ import (
 	"encoding/gob"
 	"errors"
 	"fmt"
+	cache "github.com/rishikesh-parspec/echo-http-cache"
 	"net/http"
 	"sync"
 	"time"
-
-	cache "github.com/rishikesh-parspec/echo-http-cache"
 )
 
 // Algorithm is the string type for caching algorithms labels.
@@ -113,6 +112,8 @@ func (a *Adapter) Get(key uint64) ([]byte, bool) {
 	}
 
 	response := BytesToResponse(res)
+	print("---response--", response)
+	fmt.Println("------", response.Expiration.After(time.Now()))
 	if response.Expiration.After(time.Now()) { // Cache is still valid
 		response.LastAccess = time.Now()
 		response.Frequency++

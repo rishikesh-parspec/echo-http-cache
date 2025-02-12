@@ -112,7 +112,7 @@ func (a *Adapter) Get(key uint64) ([]byte, bool) {
 	}
 
 	response := BytesToResponse(res)
-	print("---response--", response)
+	fmt.Println("---response--", response)
 	fmt.Println("------", response.Expiration.After(time.Now()))
 	if response.Expiration.After(time.Now()) { // Cache is still valid
 		response.LastAccess = time.Now()

@@ -108,6 +108,7 @@ func (a *Adapter) Get(key uint64) ([]byte, bool) {
 	a.mutex.RUnlock()
 
 	if !ok {
+		fmt.Println("----not found----")
 		return nil, false
 	}
 
@@ -115,11 +116,15 @@ func (a *Adapter) Get(key uint64) ([]byte, bool) {
 	if response.Expiration.After(time.Now()) { // Cache is still valid
 		response.LastAccess = time.Now()
 		response.Frequency++
+		fmt.Println("----key ----", key)
+		fmt.Println("----res ----", response.Bytes())
+		fmt.Println("----ex ----", response.Expiration)
 		a.Set(key, response.Bytes(), response.Expiration)
 		return res, true
 	}
 
 	// Cache is expired, remove it
+	fmt.Println("----not found -1----")
 	a.Release(key)
 	return nil, false
 }

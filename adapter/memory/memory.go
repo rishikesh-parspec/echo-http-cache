@@ -25,8 +25,11 @@ SOFTWARE.
 package memory
 
 import (
+	"bytes"
+	"encoding/gob"
 	"errors"
 	"fmt"
+	"net/http"
 	"sync"
 	"time"
 
@@ -50,6 +53,25 @@ const (
 	MFU Algorithm = "MFU"
 )
 
+type Response struct {
+	// Value is the cached response value.
+	Value []byte
+
+	// Header is the cached response header.
+	Header http.Header
+
+	// Expiration is the cached response expiration date.
+	Expiration time.Time
+
+	// LastAccess is the last date a cached response was accessed.
+	// Used by LRU and MRU algorithms.
+	LastAccess time.Time
+
+	// Frequency is the count of times a cached response is accessed.
+	// Used for LFU and MFU algorithms.
+	Frequency int
+}
+
 // Adapter is the memory adapter data structure.
 type Adapter struct {
 	mutex     sync.RWMutex
@@ -61,16 +83,35 @@ type Adapter struct {
 // AdapterOptions is used to set Adapter settings.
 type AdapterOptions func(a *Adapter) error
 
+// BytesToResponse converts bytes array into Response data structure.
+func BytesToResponse(b []byte) Response {
+	var r Response
+	dec := gob.NewDecoder(bytes.NewReader(b))
+	dec.Decode(&r)
+
+	return r
+}
+
 // Get implements the cache Adapter interface Get method.
 func (a *Adapter) Get(key uint64) ([]byte, bool) {
 	a.mutex.RLock()
-	response, ok := a.store[key]
+	res, ok := a.store[key]
 	a.mutex.RUnlock()
 
-	if ok {
-		return response, true
+	if !ok {
+		return nil, false
 	}
 
+	response := BytesToResponse(res)
+	if response.Expiration.After(time.Now()) { // Cache is still valid
+		response.LastAccess = time.Now()
+		response.Frequency++
+		a.Set(key, response.Bytes(), response.Expiration)
+		return res, true
+	}
+
+	// Cache is expired, remove it
+	a.Release(key)
 	return nil, false
 }
 

@@ -117,7 +117,7 @@ func (a *Adapter) Get(key uint64) ([]byte, bool) {
 		fmt.Println("----key ----", key)
 		fmt.Println("----res ----", response.Bytes())
 		fmt.Println("----ex ----", response.Expiration)
-		a.Set(key, response.Bytes(), response.Expiration)
+		a.Set(key, response.Value, response.Expiration)
 		return response.Value, true
 	}
 

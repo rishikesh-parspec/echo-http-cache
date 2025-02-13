@@ -105,7 +105,7 @@ func (a *Adapter) Get(key uint64) ([]byte, bool) {
 	a.mutex.RLock()
 	res, ok := a.store[key]
 	a.mutex.RUnlock()
-
+	fmt.Println("----key---", key)
 	if !ok {
 		fmt.Println("----not found----")
 		return nil, false
@@ -113,6 +113,7 @@ func (a *Adapter) Get(key uint64) ([]byte, bool) {
 
 	response := BytesToResponse(res)
 	fmt.Println("---response--", response)
+	fmt.Println("---ex--", response.Expiration)
 	fmt.Println("------", response.Expiration.After(time.Now()))
 	if response.Expiration.After(time.Now()) { // Cache is still valid
 		response.LastAccess = time.Now()
@@ -135,7 +136,8 @@ func (a *Adapter) Set(key uint64, response []byte, expiration time.Time) {
 	a.mutex.RLock()
 	length := len(a.store)
 	a.mutex.RUnlock()
-
+	fmt.Println("----key---", key)
+	fmt.Println("----res ----", response)
 	if length > 0 && length == a.capacity {
 		a.evict()
 	}

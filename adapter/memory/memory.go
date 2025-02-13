@@ -30,7 +30,6 @@ import (
 	"errors"
 	"fmt"
 	cache "github.com/rishikesh-parspec/echo-http-cache"
-	"net/http"
 	"sync"
 	"time"
 )
@@ -55,9 +54,6 @@ const (
 type Response struct {
 	// Value is the cached response value.
 	Value []byte
-
-	// Header is the cached response header.
-	Header http.Header
 
 	// Expiration is the cached response expiration date.
 	Expiration time.Time
@@ -122,7 +118,7 @@ func (a *Adapter) Get(key uint64) ([]byte, bool) {
 		fmt.Println("----res ----", response.Bytes())
 		fmt.Println("----ex ----", response.Expiration)
 		a.Set(key, response.Bytes(), response.Expiration)
-		return res, true
+		return response.Value, true
 	}
 
 	// Cache is expired, remove it
@@ -133,6 +129,13 @@ func (a *Adapter) Get(key uint64) ([]byte, bool) {
 
 // Set implements the cache Adapter interface Set method.
 func (a *Adapter) Set(key uint64, response []byte, expiration time.Time) {
+	now := time.Now()
+	res := Response{
+		Value:      response,
+		Expiration: expiration,
+		LastAccess: now,
+		Frequency:  1,
+	}
 	a.mutex.RLock()
 	length := len(a.store)
 	a.mutex.RUnlock()
@@ -143,7 +146,7 @@ func (a *Adapter) Set(key uint64, response []byte, expiration time.Time) {
 	}
 
 	a.mutex.Lock()
-	a.store[key] = response
+	a.store[key] = res.Bytes()
 	a.mutex.Unlock()
 }
 
